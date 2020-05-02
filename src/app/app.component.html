@@ -6,11 +6,15 @@
   (dblclick)="canvasDblClick($event)"
   #svg
 >
-  <g
-    *ngFor="let circle of circles"
-    svg-circle
-    [circle]="circle"
-    (click)="click($event)"
-    (mousedown)="mousedown($event)"
-  ></g>
+  <g *ngFor="let circle of circles">
+    <g *ngIf="circle.line" svg-line [line]="circle.line"></g>
+    <g svg-circle [circle]="circle" (mousedown)="mousedown($event)"></g>
+    <g
+      *ngIf="circle.handler"
+      svg-circle
+      [circle]="circle.handler"
+      (mousedown)="circle.handlerMouseDown($event)"
+      (mouseup)="circle.handlerMouseUp($event)"
+    ></g>
+  </g>
 </svg>
