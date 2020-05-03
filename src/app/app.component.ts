@@ -9,8 +9,11 @@ class CircleData {
   public handler: any;
   public isHandlerGrabbed: any;
   public line: Line;
-
   public connections = [];
+  public linesFrom = [];
+  public linesTo = [];
+  public children: CircleData[] = [];
+  public parents: CircleData[] = [];
 
   public constructor(
     x,
@@ -50,7 +53,28 @@ class CircleData {
     this.hideHandler();
     this.cx = x;
     this.cy = y;
+
+    this.linesFrom.forEach((line) => {
+      line.x1 = x;
+      line.y1 = y;
+    });
+
+    this.linesTo.forEach((line) => {
+      line.x2 = x;
+      line.y2 = y;
+    });
   }
+
+  // public updateChildPosition(child: CircleData) {
+  //   console.log('updating children');
+  //   this.linesFrom.forEach((line) => {
+  //     console.log(line);
+  //     if (line.child === child) {
+  //       line.x2 = child.cx;
+  //       line.y2 = child.cy;
+  //     }
+  //   });
+  // }
 
   public showHandler(x, y) {
     const vec = { x: x - this.cx, y: y - this.cy };
@@ -92,13 +116,23 @@ class CircleData {
     const dist = closestCircle.dist(x, y);
 
     if (dist < 50) {
-      if (this.connections.includes(closestCircle)) {
+      if (this.children.includes(closestCircle)) {
         return;
       }
-      this.connections.push(closestCircle);
-      closestCircle.connections.push(this);
 
+      const line = {
+        x1: this.cx,
+        y1: this.cy,
+        x2: closestCircle.cx,
+        y2: closestCircle.cy,
+        stroke: new Stroke('red', 'black', 0, 5, 1),
+        child: closestCircle,
+      };
 
+      this.linesFrom.push(line);
+      this.children.push(closestCircle);
+      closestCircle.parents.push(this);
+      closestCircle.linesTo.push(line);
     }
   }
 
@@ -143,7 +177,7 @@ export class AppComponent implements OnInit {
   public X0 = 0;
   public Y0 = 0;
 
-  circles: any[];
+  circles: CircleData[];
 
   public currentCircle: CircleData;
 
@@ -171,7 +205,6 @@ export class AppComponent implements OnInit {
     const cy0 = event.target.attributes.cy.value;
 
     this.circles.forEach((element) => {
-      console.log(element.cx);
       if (element.cx == cx0 && element.cy == cy0) {
         this.circle = element;
       }
@@ -192,7 +225,7 @@ export class AppComponent implements OnInit {
     this.circles.push(new CircleData(event.layerX, event.layerY));
   }
 
-  public findClosestCircle(x, y) {
+  public findClosestCircle(x, y): CircleData {
     let circle = this.circles[0];
     let distMin = 99999;
     this.circles.forEach((element) => {
@@ -220,12 +253,9 @@ export class AppComponent implements OnInit {
     const x = this.x;
     const y = this.y;
 
-    // if (this.closestCircle) {
-    // console.log(this.closestCircle);
     if (this.currentCircle) {
       this.currentCircle.moveHandler(x, y);
-    } // this.closestCircle.hideHandler();
-    // }
+    }
 
     if (e.buttons !== 1) {
       if (this.currentCircle) {
@@ -280,6 +310,5 @@ export class AppComponent implements OnInit {
     this.isCanvasClicked = false;
     const x = e.layerX + this.x0;
     const y = e.layerY + this.y0;
-    // this.closestCircle.handlerDrop(x, y);
   }
 }
