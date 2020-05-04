@@ -1,6 +1,7 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { Circle, Line, Stroke } from 'angular-svg';
-
+import { interval } from 'rxjs';
+import { isGeneratedFile } from '@angular/compiler/src/aot/util';
 class CircleData {
   public cx: number;
   public cy: number;
@@ -14,6 +15,9 @@ class CircleData {
   public linesTo = [];
   public children: CircleData[] = [];
   public parents: CircleData[] = [];
+
+  vx = 0;
+  vy = 0;
 
   public constructor(
     x,
@@ -50,7 +54,6 @@ class CircleData {
   }
 
   public setPosition(x, y) {
-    this.hideHandler();
     this.cx = x;
     this.cy = y;
 
@@ -65,16 +68,47 @@ class CircleData {
     });
   }
 
-  // public updateChildPosition(child: CircleData) {
-  //   console.log('updating children');
-  //   this.linesFrom.forEach((line) => {
-  //     console.log(line);
-  //     if (line.child === child) {
-  //       line.x2 = child.cx;
-  //       line.y2 = child.cy;
-  //     }
-  //   });
-  // }
+  public calculateDynamics(dt: number) {
+    const alpha = 10;
+    const beta1 = 2;
+    const beta3 = 1;
+    let ax = 0;
+    let ay = 0;
+
+    this.parents.forEach((element) => {
+      const dx = this.cx - element.cx;
+      const dy = this.cy - element.cy;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const force = len - 400;
+      ax += (-alpha * (force * dx)) / len;
+      ay += (-alpha * (force * dy)) / len;
+    });
+
+    // ax -= this.vx * beta1 * dt;
+    // ay -= this.vy * beta1 * dt;
+
+    this.vx = 0;
+    this.vy = 0;
+
+    this.vx += ax * dt;
+    this.vy += ay * dt;
+    this.vx *= Math.exp(-beta3 * dt);
+    this.vy *= Math.exp(-beta3 * dt);
+    // const a2 = (ax * ax + ay * ay) / 10000000;
+    // if (a2 > 0) {
+    // this.vx *= Math.exp(-a2 * dt);
+    // this.vy *= Math.exp(-a2 * dt);
+    // return;
+    // }
+    // if (this.vx * this.vx + this.vy * this.vy < 15) {
+    //   this.vx = 0;
+    //   this.vy = 0;
+    // }
+  }
+
+  public updateDynamics(dt: number) {
+    this.setPosition(this.cx + this.vx * dt, this.cy + this.vy * dt);
+  }
 
   public showHandler(x, y) {
     const vec = { x: x - this.cx, y: y - this.cy };
@@ -100,6 +134,22 @@ class CircleData {
     this.handlerDrop(x, y);
   }
 
+  public setChild(child: CircleData) {
+    const line = {
+      x1: this.cx,
+      y1: this.cy,
+      x2: child.cx,
+      y2: child.cy,
+      stroke: new Stroke('red', 'black', 0, 5, 1),
+      child,
+    };
+
+    this.linesFrom.push(line);
+    this.children.push(child);
+    child.parents.push(this);
+    child.linesTo.push(line);
+  }
+
   public handlerDrop(x, y) {
     if (!this.isHandlerGrabbed) {
       return;
@@ -120,19 +170,7 @@ class CircleData {
         return;
       }
 
-      const line = {
-        x1: this.cx,
-        y1: this.cy,
-        x2: closestCircle.cx,
-        y2: closestCircle.cy,
-        stroke: new Stroke('red', 'black', 0, 5, 1),
-        child: closestCircle,
-      };
-
-      this.linesFrom.push(line);
-      this.children.push(closestCircle);
-      closestCircle.parents.push(this);
-      closestCircle.linesTo.push(line);
+      this.setChild(closestCircle);
     }
   }
 
@@ -186,18 +224,47 @@ export class AppComponent implements OnInit {
   // closestCircle: CircleData;
 
   ngOnInit() {
-    this.circles = [
-      new CircleData(window.innerWidth / 2, window.innerHeight / 2),
-    ];
+    const c1 = new CircleData(300, 300);
+    const c2 = new CircleData(300, 600);
+    const c3 = new CircleData(600, 300);
+    const c4 = new CircleData(600, 600);
+    const c5 = new CircleData(450, 450);
+
+    c1.setChild(c2);
+    c1.setChild(c3);
+    c2.setChild(c3);
+    c2.setChild(c4);
+    c3.setChild(c4);
+    c3.setChild(c5);
+    c4.setChild(c5);
+    c4.setChild(c1);
+    c5.setChild(c1);
+    c5.setChild(c2);
+
+    this.circles = [c1, c2, c3, c4, c5];
 
     $('#svg-canvas').attr(
       'viewBox',
       `${this.x0} ${this.y0} ${this.x1} ${this.y1}`
     );
 
-    this.circles.push(new CircleData(200, 200));
+    // this.circles.push(new CircleData(200, 200));
 
     this.windowUpdate();
+
+    let dt = 0.01;
+
+    interval(1).subscribe((val) => {
+      this.circles.forEach((circle) => {
+        circle.calculateDynamics(dt);
+      });
+      this.circles.forEach((circle) => {
+        circle.updateDynamics(dt);
+      });
+
+      this.circles[0].cx = 400;
+      this.circles[0].cy = 200;
+    });
   }
 
   public mousedown(event): void {
