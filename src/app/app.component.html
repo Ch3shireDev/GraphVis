@@ -4,6 +4,7 @@
   (mousedown)="svgMouseDown($event)"
   (mouseup)="svgMouseUp($event)"
   (dblclick)="canvasDblClick($event)"
+  (scroll)="onScroll($event)"
   #svg
 >
   <g *ngFor="let circle of circles">

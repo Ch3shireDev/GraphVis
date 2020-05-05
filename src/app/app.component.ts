@@ -1,186 +1,8 @@
 import { Component, OnInit, HostListener } from '@angular/core';
-import { Circle, Line, Stroke } from 'angular-svg';
+import { Stroke } from 'angular-svg';
 import { interval } from 'rxjs';
-import { isGeneratedFile } from '@angular/compiler/src/aot/util';
-class CircleData {
-  public cx: number;
-  public cy: number;
-  public r: number;
-  public stroke: Stroke;
-  public handler: any;
-  public isHandlerGrabbed: any;
-  public line: Line;
-  public connections = [];
-  public linesFrom = [];
-  public linesTo = [];
-  public children: CircleData[] = [];
-  public parents: CircleData[] = [];
-
-  vx = 0;
-  vy = 0;
-
-  public constructor(
-    x,
-    y,
-    r = 50,
-    stroke = new Stroke('red', 'black', 0, 5, 1)
-  ) {
-    this.cx = x;
-    this.cy = y;
-    this.r = r;
-    this.stroke = stroke;
-  }
-
-  public moveHandler(x, y) {
-    if (!this.isHandlerGrabbed) {
-      return;
-    }
-    this.handler.cx = x;
-    this.handler.cy = y;
-
-    this.line = {
-      x1: this.cx,
-      y1: this.cy,
-      x2: x,
-      y2: y,
-      stroke: new Stroke('red', 'black', 0, 5, 1),
-    };
-  }
-
-  public dist(x, y) {
-    const dx = this.cx - x;
-    const dy = this.cy - y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  public setPosition(x, y) {
-    this.cx = x;
-    this.cy = y;
-
-    this.linesFrom.forEach((line) => {
-      line.x1 = x;
-      line.y1 = y;
-    });
-
-    this.linesTo.forEach((line) => {
-      line.x2 = x;
-      line.y2 = y;
-    });
-  }
-
-  public calculateDynamics(dt: number) {
-    const alpha = 10;
-    const beta1 = 2;
-    const beta3 = 1;
-    let ax = 0;
-    let ay = 0;
-
-    this.parents.forEach((element) => {
-      const dx = this.cx - element.cx;
-      const dy = this.cy - element.cy;
-      const len = Math.sqrt(dx * dx + dy * dy);
-      const force = len - 400;
-      ax += (-alpha * (force * dx)) / len;
-      ay += (-alpha * (force * dy)) / len;
-    });
-
-    // ax -= this.vx * beta1 * dt;
-    // ay -= this.vy * beta1 * dt;
-
-    this.vx = 0;
-    this.vy = 0;
-
-    this.vx += ax * dt;
-    this.vy += ay * dt;
-    this.vx *= Math.exp(-beta3 * dt);
-    this.vy *= Math.exp(-beta3 * dt);
-    // const a2 = (ax * ax + ay * ay) / 10000000;
-    // if (a2 > 0) {
-    // this.vx *= Math.exp(-a2 * dt);
-    // this.vy *= Math.exp(-a2 * dt);
-    // return;
-    // }
-    // if (this.vx * this.vx + this.vy * this.vy < 15) {
-    //   this.vx = 0;
-    //   this.vy = 0;
-    // }
-  }
-
-  public updateDynamics(dt: number) {
-    this.setPosition(this.cx + this.vx * dt, this.cy + this.vy * dt);
-  }
-
-  public showHandler(x, y) {
-    const vec = { x: x - this.cx, y: y - this.cy };
-    const len = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
-    vec.x *= (this.r + 20) / len;
-    vec.y *= (this.r + 20) / len;
-    this.handler = {
-      cx: this.cx + vec.x,
-      cy: this.cy + vec.y,
-      r: 20,
-      stroke: new Stroke('red', 'black', 0, 5, 1),
-    };
-  }
-
-  public handlerMouseDown(event) {
-    this.isHandlerGrabbed = true;
-    AppComponent.singleton.currentCircle = this;
-  }
-
-  public handlerMouseUp(event) {
-    const x = event.x - AppComponent.singleton.x0;
-    const y = event.y - AppComponent.singleton.y0;
-    this.handlerDrop(x, y);
-  }
-
-  public setChild(child: CircleData) {
-    const line = {
-      x1: this.cx,
-      y1: this.cy,
-      x2: child.cx,
-      y2: child.cy,
-      stroke: new Stroke('red', 'black', 0, 5, 1),
-      child,
-    };
-
-    this.linesFrom.push(line);
-    this.children.push(child);
-    child.parents.push(this);
-    child.linesTo.push(line);
-  }
-
-  public handlerDrop(x, y) {
-    if (!this.isHandlerGrabbed) {
-      return;
-    }
-    AppComponent.singleton.currentCircle = null;
-    this.handler = null;
-    this.isHandlerGrabbed = false;
-    this.line = null;
-
-    const closestCircle = AppComponent.singleton.findClosestCircle(x, y);
-    if (closestCircle === null) {
-      return;
-    }
-    const dist = closestCircle.dist(x, y);
-
-    if (dist < 50) {
-      if (this.children.includes(closestCircle)) {
-        return;
-      }
-
-      this.setChild(closestCircle);
-    }
-  }
-
-  public hideHandler() {
-    if (this.isHandlerGrabbed) {
-      return;
-    }
-    this.handler = null;
-  }
-}
+import { CircleData } from './circleData';
+import { CircleList } from './circleList';
 
 @Component({
   selector: 'app-root',
@@ -188,10 +10,7 @@ class CircleData {
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent implements OnInit {
-  constructor() {
-    AppComponent.singleton = this;
-  }
-  public static singleton: any;
+  constructor() { }
 
   public circle: CircleData;
 
@@ -201,13 +20,23 @@ export class AppComponent implements OnInit {
 
   public viewBox = '0 0 1000 800';
 
-  x: number;
-  y: number;
+  get x(): number { return CircleList.x; }
+  set x(value: number) { CircleList.x = value; }
+  get y(): number { return CircleList.y; }
+  set y(value: number) { CircleList.y = value; }
 
-  x0 = 0;
-  x1 = 1600;
-  y0 = 0;
-  y1 = 800;
+  get x0(): number { return CircleList.x0; }
+  set x0(value: number) { CircleList.x0 = value; }
+
+  get y0(): number { return CircleList.y0; }
+  set y0(value: number) { CircleList.y0 = value; }
+
+  get x1(): number { return CircleList.x1; }
+  set x1(value: number) { CircleList.x1 = value; }
+
+  get y1(): number { return CircleList.y1; }
+  set y1(value: number) { CircleList.y1 = value; }
+
 
   public mouseX0 = 0;
   public mouseY0 = 0;
@@ -215,15 +44,25 @@ export class AppComponent implements OnInit {
   public X0 = 0;
   public Y0 = 0;
 
-  circles: CircleData[];
+  get circles(): CircleData[] {
+    return CircleList.circles;
+  }
 
-  public currentCircle: CircleData;
+  set circles(value: CircleData[]) {
+    CircleList.circles = value;
+  }
 
   defaultStroke = new Stroke('red', 'black', 0, 5, 1);
 
   // closestCircle: CircleData;
 
   ngOnInit() {
+
+    this.x0 = 0;
+    this.y0 = 0;
+    this.x1 = 1600;
+    this.y1 = 800;
+
     const c1 = new CircleData(300, 300);
     const c2 = new CircleData(300, 600);
     const c3 = new CircleData(600, 300);
@@ -289,28 +128,20 @@ export class AppComponent implements OnInit {
   }
 
   canvasDblClick(event): void {
-    this.circles.push(new CircleData(event.layerX, event.layerY));
+    this.circles.push(new CircleData(this.x, this.y));
   }
 
-  public findClosestCircle(x, y): CircleData {
-    let circle = this.circles[0];
-    let distMin = 99999;
-    this.circles.forEach((element) => {
-      const x0 = element.cx;
-      const y0 = element.cy;
-      const dist = (x0 - x) * (x0 - x) + (y0 - y) * (y0 - y);
-
-      if (dist < distMin) {
-        circle = element;
-        distMin = dist;
-      }
-    });
-
-    return circle;
-  }
 
   get closestCircle(): CircleData {
-    return this.findClosestCircle(this.x, this.y);
+    return CircleList.findClosestCircle(this.x, this.y);
+  }
+
+  get currentCircle(): CircleData {
+    return CircleList.currentCircle;
+  }
+
+  set currentCircle(value: CircleData) {
+    CircleList.currentCircle = value;
   }
 
   @HostListener('document:mousemove', ['$event'])
@@ -319,6 +150,7 @@ export class AppComponent implements OnInit {
     this.y = e.layerY + this.y0;
     const x = this.x;
     const y = this.y;
+
 
     if (this.currentCircle) {
       this.currentCircle.moveHandler(x, y);
@@ -377,5 +209,9 @@ export class AppComponent implements OnInit {
     this.isCanvasClicked = false;
     const x = e.layerX + this.x0;
     const y = e.layerY + this.y0;
+  }
+
+  onScroll(event) {
+    alert('scroll')
   }
 }
