@@ -17,10 +17,16 @@ export class CircleData {
 
   vx = 0;
   vy = 0;
+  ax = 0;
+  ay = 0;
 
-  get x() { return CircleList.x; }
+  get x() {
+    return CircleList.x;
+  }
 
-  get y() { return CircleList.y; }
+  get y() {
+    return CircleList.y;
+  }
 
   public constructor(
     x,
@@ -72,32 +78,51 @@ export class CircleData {
   }
 
   public calculateDynamics(dt: number) {
-    const alpha = 10;
-    const beta1 = 2;
+    const alpha = 0.1;
+    const beta1 = 20;
     const beta3 = 1;
-    let ax = 0;
-    let ay = 0;
 
     this.parents.forEach((element) => {
       const dx = this.cx - element.cx;
       const dy = this.cy - element.cy;
       const len = Math.sqrt(dx * dx + dy * dy);
-      const force = len - 400;
-      ax += (-alpha * (force * dx)) / len;
-      ay += (-alpha * (force * dy)) / len;
+      const force = len - 200;
+      this.ax += (-alpha * (force * dx)) / len;
+      this.ay += (-alpha * (force * dy)) / len;
     });
+
+    const mult = 50;
+
+    for (let i = 0; i < this.children.length; i++) {
+      for (let j = i + 1; j < this.children.length; j++) {
+        const c1 = this.children[i];
+        const c2 = this.children[j];
+        const dx = (c1.cx - c2.cx) / mult;
+        const dy = (c1.cy - c2.cy) / mult;
+        const r2 = dx * dx + dy * dy;
+        const len = Math.sqrt(r2);
+
+        const dax = (dx / len / r2) * mult;
+        const day = (dy / len / r2) * mult;
+
+        c1.ax += dax;
+        c1.ay += day;
+        c2.ax += -dax;
+        c2.ay += -day;
+      }
+    }
 
     // ax -= this.vx * beta1 * dt;
     // ay -= this.vy * beta1 * dt;
 
-    this.vx = 0;
-    this.vy = 0;
+    // this.vx = 0;
+    // this.vy = 0;
 
-    this.vx += ax * dt;
-    this.vy += ay * dt;
+    this.vx += this.ax * dt;
+    this.vy += this.ay * dt;
     this.vx *= Math.exp(-beta3 * dt);
     this.vy *= Math.exp(-beta3 * dt);
-    // const a2 = (ax * ax + ay * ay) / 10000000;
+    const a2 = this.ax * this.ax + this.ay * this.ay;
     // if (a2 > 0) {
     // this.vx *= Math.exp(-a2 * dt);
     // this.vy *= Math.exp(-a2 * dt);
@@ -111,6 +136,11 @@ export class CircleData {
 
   public updateDynamics(dt: number) {
     this.setPosition(this.cx + this.vx * dt, this.cy + this.vy * dt);
+  }
+
+  public resetAcceleration() {
+    this.ax = 0;
+    this.ay = 0;
   }
 
   public showHandler(x, y) {
@@ -155,7 +185,10 @@ export class CircleData {
     if (!this.isHandlerGrabbed) {
       return;
     }
-    CircleList.currentCircle = null;
+    if (CircleList.currentCircle !== null) {
+      CircleList.currentCircle.hideHandler();
+      CircleList.currentCircle = null;
+    }
     this.handler = null;
     this.isHandlerGrabbed = false;
     this.line = null;

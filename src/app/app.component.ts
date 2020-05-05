@@ -10,7 +10,7 @@ import { CircleList } from './circleList';
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent implements OnInit {
-  constructor() { }
+  constructor() {}
 
   public circle: CircleData;
 
@@ -20,23 +20,46 @@ export class AppComponent implements OnInit {
 
   public viewBox = '0 0 1000 800';
 
-  get x(): number { return CircleList.x; }
-  set x(value: number) { CircleList.x = value; }
-  get y(): number { return CircleList.y; }
-  set y(value: number) { CircleList.y = value; }
+  get x(): number {
+    return CircleList.x;
+  }
+  set x(value: number) {
+    CircleList.x = value;
+  }
+  get y(): number {
+    return CircleList.y;
+  }
+  set y(value: number) {
+    CircleList.y = value;
+  }
 
-  get x0(): number { return CircleList.x0; }
-  set x0(value: number) { CircleList.x0 = value; }
+  get x0(): number {
+    return CircleList.x0;
+  }
+  set x0(value: number) {
+    CircleList.x0 = value;
+  }
 
-  get y0(): number { return CircleList.y0; }
-  set y0(value: number) { CircleList.y0 = value; }
+  get y0(): number {
+    return CircleList.y0;
+  }
+  set y0(value: number) {
+    CircleList.y0 = value;
+  }
 
-  get x1(): number { return CircleList.x1; }
-  set x1(value: number) { CircleList.x1 = value; }
+  get x1(): number {
+    return CircleList.x1;
+  }
+  set x1(value: number) {
+    CircleList.x1 = value;
+  }
 
-  get y1(): number { return CircleList.y1; }
-  set y1(value: number) { CircleList.y1 = value; }
-
+  get y1(): number {
+    return CircleList.y1;
+  }
+  set y1(value: number) {
+    CircleList.y1 = value;
+  }
 
   public mouseX0 = 0;
   public mouseY0 = 0;
@@ -57,7 +80,6 @@ export class AppComponent implements OnInit {
   // closestCircle: CircleData;
 
   ngOnInit() {
-
     this.x0 = 0;
     this.y0 = 0;
     this.x1 = 1600;
@@ -67,20 +89,21 @@ export class AppComponent implements OnInit {
     const c2 = new CircleData(300, 600);
     const c3 = new CircleData(600, 300);
     const c4 = new CircleData(600, 600);
-    const c5 = new CircleData(450, 450);
+    // const c5 = new CircleData(450, 450);
 
     c1.setChild(c2);
     c1.setChild(c3);
     c2.setChild(c3);
     c2.setChild(c4);
     c3.setChild(c4);
-    c3.setChild(c5);
-    c4.setChild(c5);
+    c3.setChild(c1);
     c4.setChild(c1);
-    c5.setChild(c1);
-    c5.setChild(c2);
+    c4.setChild(c2);
+    // c5.setChild(c1);
+    // c5.setChild(c2);
 
-    this.circles = [c1, c2, c3, c4, c5];
+    // this.circles = [c1, c2, c3, c4];
+    this.circles = [];
 
     $('#svg-canvas').attr(
       'viewBox',
@@ -91,18 +114,18 @@ export class AppComponent implements OnInit {
 
     this.windowUpdate();
 
-    let dt = 0.01;
+    let dt = 0.1;
 
     interval(1).subscribe((val) => {
+      this.circles.forEach((circle) => {
+        circle.resetAcceleration();
+      });
       this.circles.forEach((circle) => {
         circle.calculateDynamics(dt);
       });
       this.circles.forEach((circle) => {
         circle.updateDynamics(dt);
       });
-
-      this.circles[0].cx = 400;
-      this.circles[0].cy = 200;
     });
   }
 
@@ -131,7 +154,6 @@ export class AppComponent implements OnInit {
     this.circles.push(new CircleData(this.x, this.y));
   }
 
-
   get closestCircle(): CircleData {
     return CircleList.findClosestCircle(this.x, this.y);
   }
@@ -151,6 +173,9 @@ export class AppComponent implements OnInit {
     const x = this.x;
     const y = this.y;
 
+    this.circles.forEach((circle) => {
+      circle.hideHandler();
+    });
 
     if (this.currentCircle) {
       this.currentCircle.moveHandler(x, y);
@@ -212,6 +237,6 @@ export class AppComponent implements OnInit {
   }
 
   onScroll(event) {
-    alert('scroll')
+    alert('scroll');
   }
 }
