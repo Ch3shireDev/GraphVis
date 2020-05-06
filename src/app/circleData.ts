@@ -1,5 +1,6 @@
 import { Stroke, Line } from 'angular-svg';
 import { CircleList } from './circleList';
+import { vec2 } from 'tsm';
 
 export class CircleData {
   public cx: number;
@@ -81,6 +82,9 @@ export class CircleData {
     const alpha = 0.1;
     const beta1 = 20;
     const beta3 = 1;
+
+
+    const v1 = new vec2([1, 2]);
 
     this.parents.forEach((element) => {
       const dx = this.cx - element.cx;

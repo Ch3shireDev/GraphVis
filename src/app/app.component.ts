@@ -10,14 +10,11 @@ import { CircleList } from './circleList';
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent implements OnInit {
-  constructor() {}
+  constructor() { }
 
   public circle: CircleData;
-
   isElementClicked = false;
-
   isCanvasClicked: boolean;
-
   public viewBox = '0 0 1000 800';
 
   get x(): number {
@@ -151,6 +148,9 @@ export class AppComponent implements OnInit {
   }
 
   canvasDblClick(event): void {
+    const circle = this.closestCircle;
+    if (circle && circle.dist(this.x, this.y) < 50) { return; }
+
     this.circles.push(new CircleData(this.x, this.y));
   }
 
